@@ -1,0 +1,1 @@
+opencv_haartraining.exe -data data/cascade -vec data/positives.vec -bg data/negatives.vec -bg-vecfile -npos 800 -nneg 400 -nstages 10 -w 40 -h 60 -nonsym -mem 512
