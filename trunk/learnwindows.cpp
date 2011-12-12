@@ -20,6 +20,7 @@ QString currDirectory;
 
 bool isOpenCVReady = false;
 bool isShowNon = true;
+bool isExportInfo = true;
 
 LearnWindows::LearnWindows(QWidget *parent, Qt::WFlags flags)
 	: QMainWindow(parent, flags)
@@ -365,8 +366,13 @@ void LearnWindows::ExportAllSamples()
 	}
 
 	// Export info files
-	if(windowRegions.size())	ExportSamplesRegion("seg");
-	if(nonRegions.size())	ExportSamplesRegion("non");
+	if(isExportInfo)
+	{
+		if(windowRegions.size())	ExportSamplesRegion("seg");
+		if(nonRegions.size())	ExportSamplesRegion("non");
+	}
+
+	isExportInfo = true;
 }
 
 void LearnWindows::ExportSamplesRegion( QString ext )
@@ -444,5 +450,60 @@ void LearnWindows::ToggleNon()
 
 void LearnWindows::ExportBackgroundSamples()
 {
+	// Export processed images
+	isExportInfo = false;
+	ExportAllSamples();
+
+	QString exportDir = currDirectory + "/export";
+	QFile file(exportDir + "/" + ui.exportTitle->text() + "_non.txt");
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text))	return;
+	QTextStream out(&file);
+
+	// Create samples by sampling the image uniformly
+	foreach(QString filename, filesFolder)
+	{
+		QString fileIndex =  QString::number(filesFolder.indexOf(filename)).rightJustified(3, '0');
+		QString exportedFileName = QString("%1%2.bmp").arg(ui.exportTitle->text()).arg(fileIndex);
+		QString exportedFilePath = exportDir + "/" + exportedFileName;
+
+		// Load image to be sampled
+		cvImage img = cvLoadImage(qPrintable(exportedFilePath));
+
+		QVector< QVector<double> > currRegions;
+
+		int windowWidth = double(img->width) * 0.08;
+		int windowHeight = double(img->width) * 0.12;
+		
+		for(int i = 1; i < img->width - windowWidth; i += windowWidth )
+		{
+			for(int j = 1; j < img->height - windowHeight; j += windowHeight )
+			{
+				QVector<double> v(4);
+				
+				v[0] = i; v[1] = j;
+				v[2] = windowWidth; v[3] = windowHeight;
+
+				currRegions.push_back(v);
+			}	
+		}
+
+		// Write sample file name and number of marked regions in sample
+		out << exportedFileName << " " << currRegions.size();
+
+		// Get width and height of exported sample
+		double width = img->width, height = img->height;
+		int x,y,w,h;
+
+		foreach(QVector<double> v, currRegions){
+			x = v[0]; y = v[1];
+			w = v[2]; h = v[3];
+
+			// Output region info
+			out << " " << x << " " << y << " " << w << " " << h;
+		}
+
+		out << "\n";
+	}
 	
+	file.close();
 }
