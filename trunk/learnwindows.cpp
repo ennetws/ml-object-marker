@@ -344,7 +344,8 @@ void LearnWindows::ExportAllSamples()
 		IplImage * img = cvLoadImage(qPrintable(src_filename));
 
 		// RESIZE:
-		double scaling = maxDimension / double(max(img->width, img->height));
+		//double scaling = maxDimension / double(max(img->width, img->height));
+		double scaling = 1.0;
 		IplImage * scaled = cvCreateImage(cvSize( img->width * scaling, img->height * scaling ), img->depth, img->nChannels);
 		cvResize(img, scaled, CV_INTER_CUBIC );
 
